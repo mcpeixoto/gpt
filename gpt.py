@@ -14,6 +14,8 @@ n_embd = 384
 n_head = 6
 n_layer = 6
 dropout = 0.2
+patience = 5
+best_loss = float('inf')
 # ------------
 
 torch.manual_seed(1337)
@@ -190,12 +192,19 @@ print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
+curr_patience = 0
 for iter in range(max_iters):
 
     # every once in a while evaluate the loss on train and val sets
     if iter % eval_interval == 0 or iter == max_iters - 1:
         losses = estimate_loss()
         print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+        if losses['val'] < best_val_loss:
+            print('saving model...')
+            best_val_loss = losses['val']
+            torch.save(m.state_dict(), 'model.pt')
+
+        curr_patience = 0
 
     # sample a batch of data
     xb, yb = get_batch('train')
@@ -205,6 +214,15 @@ for iter in range(max_iters):
     optimizer.zero_grad(set_to_none=True)
     loss.backward()
     optimizer.step()
+
+    curr_patience += 1
+
+    if curr_patience > patience:
+        print('early stopping')
+        break
+
+    
+
 
 # generate from the model
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
