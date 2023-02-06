@@ -15,7 +15,7 @@ n_head = 6
 n_layer = 6
 dropout = 0.2
 patience = 5
-best_loss = float('inf')
+best_val_loss = float('inf')
 # ------------
 
 torch.manual_seed(1337)
